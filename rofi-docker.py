@@ -5,30 +5,27 @@ import shlex
 import sys
 
 
-def run_command(command:str) -> subprocess.CompletedProcess:
+def run_command(command: str) -> subprocess.CompletedProcess:
     result = subprocess.run(shlex.split(command), capture_output=True, text=True)
     return result
 
 
-def rofi_menu(options:list, selected_option:int|bool=False) -> str and int:
+def rofi_menu(options: list, selected_option: str = "0") -> tuple:
     options_str = "\n".join(options)
 
     rofi_command = ["rofi", "-dmenu", "-i"]
     if selected_option:
-        rofi_command.extend(["-selected-row", str(selected_option)])
+        rofi_command.extend(["-selected-row", selected_option])
 
     result = subprocess.run(
-        rofi_command,
-        input=options_str, 
-        capture_output=True, 
-        text=True
+        rofi_command, input=options_str, capture_output=True, text=True
     ).stdout
 
-    current_choise = 0
+    current_choise = "0"
 
     if result:
-        current_choise = options.index(result.strip('\n'))
-    return result.strip(), current_choise
+        current_choise = options.index(result.strip("\n"))
+    return (result.strip(), str(current_choise))
 
 
 def get_container_list() -> list[str]:
@@ -45,7 +42,7 @@ def get_container_list() -> list[str]:
     return containers
 
 
-def main(previous_select:bool|str=False) -> None:
+def main(previous_select: str = "0") -> None:
     docker_status = run_command("systemctl is-active docker")
     if docker_status.returncode != 0:
         action, _ = rofi_menu(["Start Docker"])
@@ -63,13 +60,13 @@ def main(previous_select:bool|str=False) -> None:
             print("Invalid action")
             sys.exit(1)
 
-
     containers = get_container_list()
 
-    if previous_select != '':
+    selected = ""
+    current_choise = ""
+    if previous_select != "":
         selected, current_choise = rofi_menu(
-            options=containers,
-            selected_option=previous_select
+            options=containers, selected_option=previous_select
         )
 
     if not selected:
@@ -82,15 +79,7 @@ def main(previous_select:bool|str=False) -> None:
         run_command("systemctl stop docker")
         sys.exit(0)
 
-    action, _ = rofi_menu(
-        [
-            "Start",
-            "Stop",
-            "Restart",
-            "Remove",
-            "Back"
-        ]
-    )
+    action, _ = rofi_menu(["Start", "Stop", "Restart", "Remove", "Back"])
 
     if action == "Start":
         run_command(f"docker start {container_id}")
@@ -110,6 +99,7 @@ def main(previous_select:bool|str=False) -> None:
     else:
         print("Invalid action")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
