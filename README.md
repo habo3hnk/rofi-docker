@@ -13,6 +13,7 @@ This Python script provides a convenient way to manage Docker containers using a
 - **Python 3.x**
 - **Rofi** (for the graphical menu)
 - **Docker** (installed and configured)
+- **sh** library (pip install sh)
 
 ### Usage:
 1. Make the script executable:
