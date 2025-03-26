@@ -7,6 +7,8 @@ import sys
 class DockerManager:
     def __init__(self):
         self.previous_select = "0"
+        self.run_docker = sh.Command("docker")
+        self.run_systemctl = sh.Command("systemctl")
 
     def rofi_menu(self, options: list, selected_option: str = "0") -> tuple:
         options_str = "\n".join(options)
@@ -26,10 +28,13 @@ class DockerManager:
 
     def get_container_list(self) -> list[str]:
         try:
-            containers = sh.docker(
+            containers = self.run_docker(
                 "ps", "-a", "--format", "{{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Ports}}"
             )
-            containers = containers.splitlines()
+            if containers:
+                containers = containers.splitlines()
+            else:
+                containers = []
         except sh.ErrorReturnCode:
             containers = []
 
@@ -38,7 +43,9 @@ class DockerManager:
 
     def check_docker_status(self):
         try:
-            docker_status = sh.systemctl("is-active", "docker").strip()
+            docker_status = self.run_systemctl("is-active", "docker")
+            if docker_status:
+                docker_status = docker_status.strip()
             if docker_status != "active":
                 return False
             return True
@@ -49,7 +56,7 @@ class DockerManager:
         action, _ = self.rofi_menu(["Start Docker", "Exit"])
 
         if action == "Start Docker":
-            sh.systemctl("start", "docker")
+            self.run_systemctl("start", "docker")
             self.run()
         else:
             sys.exit(1)
@@ -58,14 +65,14 @@ class DockerManager:
         action, _ = self.rofi_menu(["Start", "Stop", "Restart", "Remove", "Back"])
 
         if action == "Start":
-            sh.docker("start", container_id)
+            self.run_docker("start", container_id)
         elif action == "Stop":
-            sh.docker("stop", container_id)
+            self.run_docker("stop", container_id)
         elif action == "Restart":
-            sh.docker("restart", container_id)
+            self.run_docker("restart", container_id)
         elif action == "Remove":
-            sh.docker("stop", container_id)
-            sh.docker("rm", container_id)
+            self.run_docker("stop", container_id)
+            self.run_docker("rm", container_id)
             self.previous_select = "0"
             return
         elif action == "Back":
@@ -93,7 +100,7 @@ class DockerManager:
             sys.exit(1)
 
         if selected == "Stop Docker":
-            sh.systemctl("stop", "docker")
+            self.run_systemctl("stop", "docker")
             sys.exit(0)
 
         container_id = selected.split()[0]
